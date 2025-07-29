@@ -9,9 +9,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ /api/analyze (ChatBot + Resume Analyzer)
+// ✅ Health Check
+app.get("/", (req, res) => {
+  res.send("EduMate Backend is running on Vercel!");
+});
+
+// ✅ Resume Analyzer & AI Mentor (Chatbot)
 app.post("/api/analyze", async (req, res) => {
   const { messages } = req.body;
+
   if (!messages || !Array.isArray(messages)) {
     return res.status(400).json({ error: "Invalid request body" });
   }
@@ -30,16 +36,18 @@ app.post("/api/analyze", async (req, res) => {
         },
       }
     );
-    res.json(response.data);
+
+    res.status(200).json(response.data);
   } catch (err) {
-    console.error("OpenRouter error:", err.message);
+    console.error("OpenRouter error:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to fetch from OpenRouter" });
   }
 });
 
-// ✅ /api/roadmap (Learning Path Generator)
+// ✅ Roadmap Generator
 app.post("/api/roadmap", async (req, res) => {
   const { goal } = req.body;
+
   if (!goal || typeof goal !== "string") {
     return res.status(400).json({ error: "Goal is required." });
   }
@@ -84,26 +92,18 @@ Use this exact JSON format (no markdown, no explanation):
       }
     );
 
-    const rawReply = response.data?.choices?.[0]?.message?.content;
-    if (!rawReply) throw new Error("No content received from OpenRouter");
+    const raw = response.data?.choices?.[0]?.message?.content;
+    if (!raw) throw new Error("Empty response from OpenRouter");
 
-    const cleaned = rawReply
-      .trim()
-      .replace(/^```json\s*|```$/g, "")
-      .trim();
-
+    const cleaned = raw.trim().replace(/^```json\s*|```$/g, "");
     const roadmap = JSON.parse(cleaned);
-    res.json(roadmap);
+
+    res.status(200).json(roadmap);
   } catch (err) {
-    console.error("Roadmap error:", err.message);
+    console.error("Roadmap error:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to generate roadmap" });
   }
 });
 
-// ✅ Health Check
-app.get("/", (req, res) => {
-  res.send("EduMate Backend is running on Vercel!");
-});
-
-// ✅ IMPORTANT: Export Express app (DON'T use app.listen in Vercel)
+// ✅ Export for Vercel
 module.exports = app;
