@@ -50,7 +50,7 @@ app.post("/api/roadmap", async (req, res) => {
       {
         model: "gpt-3.5-turbo",
         temperature: 0.4,
-        max_tokens: 1500,
+        max_tokens: 500,
         messages: [
           {
             role: "system",
