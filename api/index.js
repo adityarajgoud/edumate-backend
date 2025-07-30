@@ -22,6 +22,8 @@ app.post("/api/analyze", async (req, res) => {
       {
         model: "gpt-3.5-turbo",
         messages,
+        temperature: 0.3,
+        max_tokens: 400,
       },
       {
         headers: {
