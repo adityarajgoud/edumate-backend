@@ -60,7 +60,10 @@ app.post("/api/roadmap", async (req, res) => {
           },
           {
             role: "user",
-            content: `Create a detailed 4-week learning roadmap for the goal: "${goal}". Each week should include:
+            content: `Create a detailed 4-week learning roadmap for the goal: ${JSON.stringify(
+              goal
+            )}. Each week should include:
+
 - A clear and meaningful title
 - 4 to 6 specific tasks
 Use this exact JSON format (no markdown, no explanation):
