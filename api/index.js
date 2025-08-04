@@ -20,7 +20,7 @@ app.post("/api/analyze", async (req, res) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "mistralai/mistral-7b-instruct", // ✅ using free model
+        model: "mistralai/mistral-7b-instruct",
         messages,
         temperature: 0.3,
         max_tokens: 400,
@@ -39,7 +39,7 @@ app.post("/api/analyze", async (req, res) => {
   }
 });
 
-// ✅ Roadmap Generator
+// ✅ Roadmap Generator (Final Fix)
 app.post("/api/roadmap", async (req, res) => {
   const { goal } = req.body;
   if (!goal || typeof goal !== "string") {
@@ -51,27 +51,29 @@ app.post("/api/roadmap", async (req, res) => {
       "https://openrouter.ai/api/v1/chat/completions",
       {
         model: "mistralai/mistral-7b-instruct",
-        temperature: 0.4,
+        temperature: 0.3,
         max_tokens: 400,
         messages: [
           {
             role: "system",
             content:
-              "You are a helpful assistant that ONLY responds with valid JSON. Do not include any explanation or formatting.",
+              "You are an expert roadmap planner. Respond ONLY with clean JSON. No explanation, no markdown.",
           },
           {
             role: "user",
-            content: `Create a 4-week learning roadmap for the goal: ${goal}.
-
-Respond ONLY with raw JSON using this structure (no markdown, no explanation):
+            content: `Create a 4-week learning roadmap for: ${goal}.
+Each week must include:
+- a short title (max 5 words, no quotes)
+- 4 simple task titles (avoid quotes)
+Respond ONLY with raw JSON using this format:
 
 [
   {
     "week": 1,
-    "title": "string",
+    "title": "Week title",
     "completed": false,
     "tasks": [
-      { "id": "1-1", "title": "task title", "completed": false }
+      { "id": "1-1", "title": "Task title", "completed": false }
     ]
   }
 ]`,
@@ -90,11 +92,20 @@ Respond ONLY with raw JSON using this structure (no markdown, no explanation):
     if (!rawReply) throw new Error("No content received from OpenRouter");
 
     const cleaned = rawReply
-      .trim()
-      .replace(/^```json\s*|```$/g, "")
+      .replace(/```json|```/g, "") // remove markdown ticks
       .trim();
 
-    const roadmap = JSON.parse(cleaned);
+    let roadmap;
+    try {
+      roadmap = JSON.parse(cleaned);
+    } catch (parseErr) {
+      console.error("❌ JSON parse error:", parseErr.message);
+      console.error("❌ Raw content:", cleaned);
+      return res
+        .status(500)
+        .json({ error: "Invalid JSON format returned from AI." });
+    }
+
     res.json(roadmap);
   } catch (err) {
     console.error("Roadmap error:", err.response?.data || err.message);
@@ -102,10 +113,10 @@ Respond ONLY with raw JSON using this structure (no markdown, no explanation):
   }
 });
 
-// ✅ Health Check
+// ✅ Health check
 app.get("/", (req, res) => {
   res.send("EduMate Backend is running!");
 });
 
-// ✅ Vercel Export Handler
+// ✅ Export for Vercel
 module.exports = (req, res) => app(req, res);
