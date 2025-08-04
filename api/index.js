@@ -20,10 +20,10 @@ app.post("/api/analyze", async (req, res) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "mistralai/mistral-7b-instruct", // ✅ switched to free model
+        model: "mistralai/mistral-7b-instruct", // ✅ using free model
         messages,
         temperature: 0.3,
-        max_tokens: 400, // safe token size for free usage
+        max_tokens: 400,
       },
       {
         headers: {
@@ -50,23 +50,20 @@ app.post("/api/roadmap", async (req, res) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "mistralai/mistral-7b-instruct", // ✅ free model
+        model: "mistralai/mistral-7b-instruct",
         temperature: 0.4,
-        max_tokens: 400, // reduced for free credit usage
+        max_tokens: 400,
         messages: [
           {
             role: "system",
-            content: "You are an expert learning path designer AI.",
+            content:
+              "You are a helpful assistant that ONLY responds with valid JSON. Do not include any explanation or formatting.",
           },
           {
             role: "user",
-            content: `Create a detailed 4-week learning roadmap for the goal: ${JSON.stringify(
-              goal
-            )}. Each week should include:
+            content: `Create a 4-week learning roadmap for the goal: ${goal}.
 
-- A clear and meaningful title
-- 4 to 6 specific tasks
-Use this exact JSON format (no markdown, no explanation):
+Respond ONLY with raw JSON using this structure (no markdown, no explanation):
 
 [
   {
@@ -105,10 +102,10 @@ Use this exact JSON format (no markdown, no explanation):
   }
 });
 
-// ✅ Health check
+// ✅ Health Check
 app.get("/", (req, res) => {
   res.send("EduMate Backend is running!");
 });
 
-// ✅ Export as handler for Vercel
+// ✅ Vercel Export Handler
 module.exports = (req, res) => app(req, res);
