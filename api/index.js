@@ -39,7 +39,7 @@ app.post("/api/analyze", async (req, res) => {
   }
 });
 
-// ✅ Roadmap Generator (Final Fix)
+// ✅ Roadmap Generator
 app.post("/api/roadmap", async (req, res) => {
   const { goal } = req.body;
   if (!goal || typeof goal !== "string") {
@@ -53,19 +53,17 @@ app.post("/api/roadmap", async (req, res) => {
         model: "mistralai/mistral-7b-instruct",
         temperature: 0.3,
         max_tokens: 400,
+        stop: ["```", "\n\n"], // stop before explanations
         messages: [
           {
             role: "system",
             content:
-              "You are an expert roadmap planner. Respond ONLY with clean JSON. No explanation, no markdown.",
+              "You are an expert roadmap planner. Only return JSON array, no explanation.",
           },
           {
             role: "user",
             content: `Create a 4-week learning roadmap for: ${goal}.
-Each week must include:
-- a short title (max 5 words, no quotes)
-- 4 simple task titles (avoid quotes)
-Respond ONLY with raw JSON using this format:
+Each week should include a title and 4-6 short tasks. Return only clean JSON in this format:
 
 [
   {
@@ -88,27 +86,22 @@ Respond ONLY with raw JSON using this format:
       }
     );
 
-    const rawReply = response.data?.choices?.[0]?.message?.content;
-    if (!rawReply) throw new Error("No content received from OpenRouter");
-
-    const cleaned = rawReply
-      .replace(/```json|```/g, "") // remove markdown ticks
+    let raw = response.data?.choices?.[0]?.message?.content || "";
+    raw = raw
+      .trim()
+      .replace(/^```json\s*|```$/g, "")
       .trim();
 
-    let roadmap;
-    try {
-      roadmap = JSON.parse(cleaned);
-    } catch (parseErr) {
-      console.error("❌ JSON parse error:", parseErr.message);
-      console.error("❌ Raw content:", cleaned);
-      return res
-        .status(500)
-        .json({ error: "Invalid JSON format returned from AI." });
-    }
+    // ✅ Find last closing bracket and slice safely
+    const lastBracket = raw.lastIndexOf("]");
+    if (lastBracket === -1) throw new Error("Missing closing bracket");
+
+    const safeJSON = raw.slice(0, lastBracket + 1);
+    const roadmap = JSON.parse(safeJSON);
 
     res.json(roadmap);
   } catch (err) {
-    console.error("Roadmap error:", err.response?.data || err.message);
+    console.error("❌ Roadmap error:", err.response?.data || err.message);
     res.status(500).json({ error: "Failed to generate roadmap" });
   }
 });
