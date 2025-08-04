@@ -20,10 +20,10 @@ app.post("/api/analyze", async (req, res) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "gpt-3.5-turbo",
+        model: "mistralai/mistral-7b-instruct", // ✅ switched to free model
         messages,
         temperature: 0.3,
-        max_tokens: 400,
+        max_tokens: 400, // safe token size for free usage
       },
       {
         headers: {
@@ -50,9 +50,9 @@ app.post("/api/roadmap", async (req, res) => {
     const response = await axios.post(
       "https://openrouter.ai/api/v1/chat/completions",
       {
-        model: "gpt-3.5-turbo",
+        model: "mistralai/mistral-7b-instruct", // ✅ free model
         temperature: 0.4,
-        max_tokens: 512,
+        max_tokens: 400, // reduced for free credit usage
         messages: [
           {
             role: "system",
@@ -109,5 +109,6 @@ Use this exact JSON format (no markdown, no explanation):
 app.get("/", (req, res) => {
   res.send("EduMate Backend is running!");
 });
+
 // ✅ Export as handler for Vercel
 module.exports = (req, res) => app(req, res);
