@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const axios = require("axios");
-const { jsonrepair } = require("jsonrepair"); // ✅ NEW
+const { jsonrepair } = require("jsonrepair"); // ✅ Import jsonrepair
 
 dotenv.config();
 
@@ -40,7 +40,7 @@ app.post("/api/analyze", async (req, res) => {
   }
 });
 
-// ✅ Roadmap Generator
+// ✅ Roadmap Generator with bulletproof JSON handling
 app.post("/api/roadmap", async (req, res) => {
   const { goal } = req.body;
   if (!goal || typeof goal !== "string") {
@@ -58,20 +58,19 @@ app.post("/api/roadmap", async (req, res) => {
           {
             role: "system",
             content:
-              "You are an expert roadmap planner. Only return JSON array, no explanation.",
+              "You are an expert roadmap planner. Only return valid JSON array with no explanation.",
           },
           {
             role: "user",
-            content: `Create a 4-week learning roadmap for: ${goal}.
-Each week should include a title and 4-6 short tasks. Return only clean JSON in this format:
+            content: `Create a 4-week learning roadmap for the goal: ${goal}. Return valid JSON only using double quotes. Format:
 
 [
   {
     "week": 1,
-    "title": "Week title",
+    "title": "Week 1 title",
     "completed": false,
     "tasks": [
-      { "id": "1-1", "title": "Task title", "completed": false }
+      { "id": "1-1", "title": "Task 1", "completed": false }
     ]
   }
 ]`,
@@ -88,14 +87,16 @@ Each week should include a title and 4-6 short tasks. Return only clean JSON in 
 
     let raw = response.data?.choices?.[0]?.message?.content || "";
 
-    // ✅ Clean and repair JSON
+    // Remove ```json or ``` wrappers if present
     raw = raw
       .trim()
       .replace(/^```json\s*|```$/g, "")
       .trim();
-    const fixedJSON = jsonrepair(raw); // ✅ Fix broken JSON
 
-    const roadmap = JSON.parse(fixedJSON);
+    // ✅ Repair broken JSON using jsonrepair
+    const fixed = jsonrepair(raw);
+
+    const roadmap = JSON.parse(fixed);
     res.json(roadmap);
   } catch (err) {
     console.error("❌ Roadmap error:", err.response?.data || err.message);
@@ -108,5 +109,4 @@ app.get("/", (req, res) => {
   res.send("EduMate Backend is running!");
 });
 
-// ✅ Export for Vercel
 module.exports = (req, res) => app(req, res);
