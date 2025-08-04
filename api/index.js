@@ -2,7 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const axios = require("axios");
-const { jsonrepair } = require("jsonrepair"); // ✅ Import jsonrepair
+const { jsonrepair } = require("jsonrepair"); // ✅ Fix broken JSON
 
 dotenv.config();
 
@@ -33,6 +33,7 @@ app.post("/api/analyze", async (req, res) => {
         },
       }
     );
+
     res.json(response.data);
   } catch (err) {
     console.error("Analyze error:", err.response?.data || err.message);
@@ -40,7 +41,7 @@ app.post("/api/analyze", async (req, res) => {
   }
 });
 
-// ✅ Roadmap Generator with bulletproof JSON handling
+// ✅ Roadmap Generator
 app.post("/api/roadmap", async (req, res) => {
   const { goal } = req.body;
   if (!goal || typeof goal !== "string") {
@@ -53,24 +54,29 @@ app.post("/api/roadmap", async (req, res) => {
       {
         model: "mistralai/mistral-7b-instruct",
         temperature: 0.3,
-        max_tokens: 400,
+        max_tokens: 700, // Increased to allow full 4-week roadmap
         messages: [
           {
             role: "system",
             content:
-              "You are an expert roadmap planner. Only return valid JSON array with no explanation.",
+              "You are an expert roadmap planner. Respond with valid JSON array only. No explanation, no markdown.",
           },
           {
             role: "user",
-            content: `Create a 4-week learning roadmap for the goal: ${goal}. Return valid JSON only using double quotes. Format:
+            content: `Create a detailed 4-week learning roadmap for: ${goal}.
+Each week must include:
+- A week number
+- A meaningful title
+- 4 to 6 tasks (with short titles)
+Respond ONLY with valid JSON, like:
 
 [
   {
     "week": 1,
-    "title": "Week 1 title",
+    "title": "Week Title",
     "completed": false,
     "tasks": [
-      { "id": "1-1", "title": "Task 1", "completed": false }
+      { "id": "1-1", "title": "Task title", "completed": false }
     ]
   }
 ]`,
@@ -87,16 +93,16 @@ app.post("/api/roadmap", async (req, res) => {
 
     let raw = response.data?.choices?.[0]?.message?.content || "";
 
-    // Remove ```json or ``` wrappers if present
+    // Remove Markdown-style ```json wrappers
     raw = raw
       .trim()
       .replace(/^```json\s*|```$/g, "")
       .trim();
 
-    // ✅ Repair broken JSON using jsonrepair
-    const fixed = jsonrepair(raw);
+    // ✅ Attempt to repair malformed JSON
+    const repaired = jsonrepair(raw);
+    const roadmap = JSON.parse(repaired);
 
-    const roadmap = JSON.parse(fixed);
     res.json(roadmap);
   } catch (err) {
     console.error("❌ Roadmap error:", err.response?.data || err.message);
@@ -109,4 +115,5 @@ app.get("/", (req, res) => {
   res.send("EduMate Backend is running!");
 });
 
+// ✅ Vercel export
 module.exports = (req, res) => app(req, res);
