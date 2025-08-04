@@ -2,6 +2,7 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const axios = require("axios");
+const { jsonrepair } = require("jsonrepair"); // ✅ NEW
 
 dotenv.config();
 
@@ -53,7 +54,6 @@ app.post("/api/roadmap", async (req, res) => {
         model: "mistralai/mistral-7b-instruct",
         temperature: 0.3,
         max_tokens: 400,
-        stop: ["```", "\n\n"], // stop before explanations
         messages: [
           {
             role: "system",
@@ -87,18 +87,15 @@ Each week should include a title and 4-6 short tasks. Return only clean JSON in 
     );
 
     let raw = response.data?.choices?.[0]?.message?.content || "";
+
+    // ✅ Clean and repair JSON
     raw = raw
       .trim()
       .replace(/^```json\s*|```$/g, "")
       .trim();
+    const fixedJSON = jsonrepair(raw); // ✅ Fix broken JSON
 
-    // ✅ Find last closing bracket and slice safely
-    const lastBracket = raw.lastIndexOf("]");
-    if (lastBracket === -1) throw new Error("Missing closing bracket");
-
-    const safeJSON = raw.slice(0, lastBracket + 1);
-    const roadmap = JSON.parse(safeJSON);
-
+    const roadmap = JSON.parse(fixedJSON);
     res.json(roadmap);
   } catch (err) {
     console.error("❌ Roadmap error:", err.response?.data || err.message);
